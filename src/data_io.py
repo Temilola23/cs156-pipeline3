@@ -32,6 +32,7 @@ def load_324_ratings() -> pd.DataFrame:
     df['year'] = df['tmdb_id'].map(lambda x: meta.get(int(x), {}).get('year') if pd.notna(x) else None)
     df['genres'] = df['tmdb_id'].map(lambda x: meta.get(int(x), {}).get('genres', []) if pd.notna(x) else [])
     df['runtime_min'] = df['tmdb_id'].map(lambda x: meta.get(int(x), {}).get('runtime_min') if pd.notna(x) else None)
+    df['vote_average'] = df['tmdb_id'].map(lambda x: meta.get(int(x), {}).get('tmdb_vote_average') if pd.notna(x) else None)
     return df
 
 
