@@ -21,3 +21,15 @@ def test_ukf_matches_kalman_on_linear():
         kf.predict(); kf.update(np.array([y]))
         ukf.predict(); ukf.update(np.array([y]))
     assert abs(kf.x[0] - ukf.x[0]) < 0.2
+
+
+def test_particle_filter_tracks_constant():
+    from src.kalman import BootstrapParticleFilter
+    np.random.seed(2)
+    pf = BootstrapParticleFilter(
+        f=lambda x: x, h=lambda x: x, Q=0.01, R=0.5, N=300, seed=2
+    )
+    pf.init(0.0, 1.0)
+    for y in np.random.default_rng(2).normal(3.0, np.sqrt(0.5), 150):
+        pf.step(y)
+    assert abs(pf.mean() - 3.0) < 0.5

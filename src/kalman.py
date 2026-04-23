@@ -116,3 +116,84 @@ class UKF:
         K = Pxy @ np.linalg.inv(Pyy)
         self.x = self.x + K @ (y - yhat)
         self.P = self.P - K @ Pyy @ K.T
+
+
+class BootstrapParticleFilter:
+    """Bootstrap particle filter with systematic resampling.
+
+    Model: x_t = f(x_{t-1}) + w_t, w_t ~ N(0, Q_scalar)
+           y_t = h(x_t) + v_t,      v_t ~ N(0, R_scalar)
+    1-D latent state; f and h are callables taking scalar -> scalar.
+    """
+    def __init__(self, f, h, Q, R, N=500, seed=0):
+        self.f, self.h, self.Q, self.R, self.N = f, h, Q, R, N
+        self.rng = np.random.default_rng(seed)
+
+    def init(self, x0_mean=0.0, x0_std=1.0):
+        self.particles = self.rng.normal(x0_mean, x0_std, self.N)
+        self.weights = np.full(self.N, 1.0 / self.N)
+        self.history = [self.particles.copy()]
+        self.ess_history = []
+
+    def step(self, y):
+        # propagate
+        self.particles = np.array([self.f(p) for p in self.particles]) \
+            + self.rng.normal(0.0, np.sqrt(self.Q), self.N)
+        # reweight by Gaussian likelihood
+        yhat = np.array([self.h(p) for p in self.particles])
+        log_w = -0.5 * (y - yhat) ** 2 / self.R
+        log_w -= log_w.max()
+        w = np.exp(log_w) * self.weights
+        w /= w.sum()
+        self.weights = w
+        # ESS + systematic resample if ESS < N/2
+        ess = 1.0 / np.sum(w ** 2)
+        self.ess_history.append(ess)
+        if ess < self.N / 2:
+            self.particles = self._systematic_resample(self.particles, self.weights)
+            self.weights = np.full(self.N, 1.0 / self.N)
+        self.history.append(self.particles.copy())
+
+    def _systematic_resample(self, particles, weights):
+        N = len(particles)
+        positions = (self.rng.uniform() + np.arange(N)) / N
+        cumw = np.cumsum(weights)
+        cumw[-1] = 1.0
+        idx = np.searchsorted(cumw, positions)
+        return particles[idx]
+
+    def mean(self):
+        return np.sum(self.weights * self.particles)
+
+
+class FFBSi:
+    """Forward-Filtering Backward-Simulation smoother.
+
+    Given the full particle/weight history from a BootstrapParticleFilter run
+    and a transition density (Gaussian on (f(x_t), Q)), draw M smoothed trajectories.
+    """
+    def __init__(self, f, Q, seed=0):
+        self.f, self.Q = f, Q
+        self.rng = np.random.default_rng(seed)
+
+    def sample(self, history, weights_final, M=200):
+        """history: list of length T+1 of particle arrays (post-resample per step).
+        weights_final: length-N weights at final time.
+        Returns array shape (M, T+1) of smoothed trajectories.
+        """
+        T_plus = len(history)
+        N = len(history[0])
+        traj = np.zeros((M, T_plus))
+        # sample endpoint from final weights
+        idx_T = self.rng.choice(N, size=M, p=weights_final)
+        traj[:, T_plus - 1] = history[T_plus - 1][idx_T]
+        # backward simulate
+        for t in range(T_plus - 2, -1, -1):
+            particles_t = history[t]
+            for m in range(M):
+                x_next = traj[m, t + 1]
+                log_w = -0.5 * (x_next - np.array([self.f(p) for p in particles_t])) ** 2 / self.Q
+                log_w -= log_w.max()
+                w = np.exp(log_w); w /= w.sum()
+                traj[m, t] = particles_t[self.rng.choice(N, p=w)]
+        return traj
