@@ -1,0 +1,53 @@
+# Pipeline 3 ACT I + Day-0 trailer infrastructure
+# (Day 5-6 motion-LoRA training has its own GPU requirements file.)
+streamlit>=1.30
+pandas>=2.0
+requests>=2.31
+yt-dlp>=2024.1
+scenedetect[opencv]>=0.6.3
+tqdm>=4.66
+
+# Core
+numpy>=1.26
+scipy>=1.12
+scikit-learn>=1.4
+matplotlib>=3.8
+seaborn>=0.13
+plotly>=5.20
+
+# Probabilistic / causal / Bayesian
+pymc>=5.10
+arviz>=0.17
+
+# Deep learning
+torch>=2.2
+torchvision
+torch-geometric>=2.5
+accelerate>=0.27
+transformers>=4.40
+diffusers>=0.27
+peft>=0.10
+bitsandbytes>=0.43
+trl>=0.8
+
+# Recsys
+lightfm>=1.17
+implicit>=0.7
+
+# Tabular synth
+sdv>=1.10
+
+# Video / audio
+moviepy>=1.0
+pydub>=0.25
+
+# Notebook → PDF
+jupyter
+nbconvert
+ipykernel
+
+# App
+# streamlit already listed above
+
+# Misc
+python-dotenv
