@@ -14,6 +14,9 @@ from pathlib import Path
 from typing import Tuple, Dict
 import re
 import string
+import urllib.request
+import zipfile
+import shutil
 
 import pandas as pd
 import numpy as np
@@ -74,16 +77,44 @@ def cosine_similarity(v1: np.ndarray, v2: np.ndarray) -> float:
 def load_movielens_data(ml_dir: Path) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Load MovieLens movies and ratings.
+    Supports both ml-1m (.dat files with :: separator) and ml-latest-small (.csv files).
 
     Returns:
         movies_df: movieId, title, genres
         ratings_df: userId, movieId, rating, timestamp
     """
-    movies_path = ml_dir / "movies.csv"
-    ratings_path = ml_dir / "ratings.csv"
+    # Try ml-1m format first (.dat files with :: separator)
+    movies_dat = ml_dir / "movies.dat"
+    ratings_dat = ml_dir / "ratings.dat"
 
-    movies = pd.read_csv(movies_path)
-    ratings = pd.read_csv(ratings_path)
+    if movies_dat.exists() and ratings_dat.exists():
+        print("  - Detected ml-1m format (.dat files)")
+        # ml-1m format: MovieID::Title::Genres
+        movies = pd.read_csv(
+            movies_dat,
+            sep='::',
+            header=None,
+            names=['movieId', 'title', 'genres'],
+            engine='python',
+            encoding='latin-1'
+        )
+        # ml-1m format: UserID::MovieID::Rating::Timestamp
+        ratings = pd.read_csv(
+            ratings_dat,
+            sep='::',
+            header=None,
+            names=['userId', 'movieId', 'rating', 'timestamp'],
+            engine='python',
+            encoding='latin-1'
+        )
+    else:
+        # Fall back to ml-latest-small format (.csv files)
+        print("  - Detected ml-latest-small format (.csv files)")
+        movies_path = ml_dir / "movies.csv"
+        ratings_path = ml_dir / "ratings.csv"
+
+        movies = pd.read_csv(movies_path)
+        ratings = pd.read_csv(ratings_path)
 
     return movies, ratings
 
@@ -176,15 +207,37 @@ def select_top_k_users(
 
 
 def main():
-    """Main pipeline: download MovieLens, bridge titles, select twin users, emit parquet."""
+    """Main pipeline: download ml-1m MovieLens, bridge titles, select twin users, emit parquet."""
     print("=" * 80)
-    print("Task 1.7: MovieLens Twin Dataset Generation")
+    print("Task 1.7: MovieLens Twin Dataset Generation (ml-1m)")
     print("=" * 80)
 
     # Paths
-    ml_dir = PIPELINE3_DIR / "data" / "ml-latest-small"
+    ml_dir = PIPELINE3_DIR / "data" / "ml-1m"
     artifacts_dir = PIPELINE3_DIR / "artifacts"
     artifacts_dir.mkdir(exist_ok=True)
+
+    # Step 0: Download ml-1m if not present
+    if not ml_dir.exists():
+        print("\n[0] Downloading ml-1m dataset...")
+        ml_zip = PIPELINE3_DIR / "data" / "ml-1m.zip"
+        try:
+            import subprocess
+            print(f"  - Downloading from https://files.grouplens.org/datasets/movielens/ml-1m.zip...")
+            subprocess.run(
+                ["curl", "-k", "-L", "https://files.grouplens.org/datasets/movielens/ml-1m.zip", "-o", str(ml_zip)],
+                check=True,
+                capture_output=True
+            )
+            print(f"  - Downloaded {ml_zip.stat().st_size / (1024*1024):.1f} MB")
+            print(f"  - Extracting to {ml_dir}...")
+            with zipfile.ZipFile(ml_zip, 'r') as z:
+                z.extractall(PIPELINE3_DIR / "data")
+            print(f"  - Extracted successfully")
+        except Exception as e:
+            print(f"  ERROR: Failed to download ml-1m: {e}")
+            print(f"  Falling back to ml-latest-small...")
+            ml_dir = PIPELINE3_DIR / "data" / "ml-latest-small"
 
     # Step 1: Load MovieLens data
     print("\n[1] Loading MovieLens data...")

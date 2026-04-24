@@ -64,14 +64,13 @@ def build_hierarchical_anova_model(
     # Build model
     with pm.Model() as model:
         # Priors
-        # Rating scale is 1-5, so grand mean around 3.5 ± 1.5 is reasonable
-        mu = pm.Normal('mu', mu=3.5, sigma=1.5)
+        # Rating scale is 0-10, so grand mean around 7 is reasonable
+        mu = pm.Normal('mu', mu=7.0, sigma=1)
 
-        # Variance priors: weakly informative
-        # For a 1-5 scale, max SD should be ~2, so HalfNormal(0.5) is reasonable
-        sigma_modality = pm.HalfNormal('sigma_modality', sigma=0.5)
-        sigma_movie = pm.HalfNormal('sigma_movie', sigma=0.5)
-        sigma_obs = pm.HalfNormal('sigma_obs', sigma=0.5)
+        # Variance priors
+        sigma_modality = pm.HalfCauchy('sigma_modality', beta=2.5)
+        sigma_movie = pm.HalfNormal('sigma_movie', sigma=1)
+        sigma_obs = pm.HalfNormal('sigma_obs', sigma=1)
 
         # Non-centered parameterization for modality offset
         a_m_raw = pm.Normal('a_m_raw', mu=0, sigma=1.0, shape=n_modalities)

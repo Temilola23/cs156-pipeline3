@@ -110,7 +110,7 @@ def main():
     print("[*] Running Thompson sampling and random baseline (10 seeds)...")
     
     n_seeds = 10
-    n_rounds = 20
+    n_rounds = 200
     thompson_regrets_all = []
     random_regrets_all = []
     thompson_history_all = []

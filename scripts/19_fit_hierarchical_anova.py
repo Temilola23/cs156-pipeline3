@@ -49,8 +49,8 @@ print("[ANOVA-19] Fitting hierarchical ANOVA...")
 idata = fit_hierarchical_anova(
     df,
     n_tune=1000,
-    n_draw=1000,
-    n_chains=2,
+    n_draw=2000,
+    n_chains=4,
     seed=42,
     target_accept=0.95,
 )
@@ -122,24 +122,49 @@ n_divergences = idata.sample_stats['diverging'].sum().values
 print(f"\nTotal divergences: {n_divergences} (0 is ideal, <10 is acceptable)")
 
 # ============================================================================
-# Plot 1: Forest plot of modality offsets
+# Plot 1: Forest plot of modality offsets (hand-drawn for deterministic axes)
 # ============================================================================
 print("\n[ANOVA-19] Creating forest plot...")
 fig, ax = plt.subplots(figsize=(10, 6))
 
-# Extract posterior for a_m
-a_m_var = idata.posterior['a_m']
-az.plot_forest(
-    [a_m_var],
-    var_names=['a_m'],
-    combined=True,
-    hdi_prob=0.94,
-    ax=ax,
-)
-ax.set_xticklabels(modality_names)
+# Per-modality posterior mean + 94% HDI, ordered top-to-bottom per `modality_names`
+means, hdi_lows, hdi_highs = [], [], []
+for i in range(len(modality_names)):
+    samples_m = a_m_samples[:, :, i].flatten()
+    means.append(float(np.mean(samples_m)))
+    hdi = az.hdi(samples_m, hdi_prob=0.94)
+    hdi_lows.append(float(hdi[0]))
+    hdi_highs.append(float(hdi[1]))
+means = np.array(means)
+hdi_lows = np.array(hdi_lows)
+hdi_highs = np.array(hdi_highs)
+
+# Plot top-to-bottom in the order the names appear in `modality_names`
+y_positions = np.arange(len(modality_names))[::-1]  # reverse so 'all' is on top
+
+# Zero reference line: where each modality falls relative to the grand mean
+ax.axvline(0.0, color='gray', linestyle='--', linewidth=1, alpha=0.7, zorder=1)
+
+# 94% HDI as horizontal segment with end caps
+for y, m, lo, hi in zip(y_positions, means, hdi_lows, hdi_highs):
+    ax.plot([lo, hi], [y, y], color='#1f4e79', linewidth=2.2, zorder=2)
+    ax.scatter([lo, hi], [y, y], marker='|', s=120, color='#1f4e79', zorder=3)
+    ax.scatter([m], [y], marker='o', s=90, color='#c0392b',
+               edgecolor='black', linewidth=0.7, zorder=4)
+
+# Annotate each row with the posterior mean
+for y, m in zip(y_positions, means):
+    ax.text(m, y + 0.18, f'{m:+.3f}', ha='center', va='bottom',
+            fontsize=10, color='#222', zorder=5)
+
+ax.set_yticks(y_positions)
+ax.set_yticklabels(modality_names, fontsize=12)
 ax.set_ylabel('Modality')
-ax.set_xlabel('Posterior offset a_m (relative to grand mean)')
-ax.set_title('Bayesian Hierarchical ANOVA: Modality Effects')
+ax.set_xlabel('Posterior offset $a_m$ relative to grand mean $\\mu$')
+ax.set_title('Hierarchical ANOVA: modality offsets (dot = posterior mean, bar = 94\\% HDI)')
+ax.grid(axis='x', alpha=0.3)
+ax.set_ylim(y_positions.min() - 0.6, y_positions.max() + 0.6)
+
 fig.tight_layout()
 forest_path = PLOTS / "anova_forest.png"
 fig.savefig(forest_path, dpi=150, bbox_inches='tight')

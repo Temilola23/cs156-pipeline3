@@ -1,5 +1,5 @@
 """
-Train TVAE on tabular rating-feature data and generate 5000 synthetic samples.
+Train TVAE on tabular rating-feature data and generate 1000 synthetic samples.
 
 Feature table columns:
   - rating (1-5)
@@ -98,8 +98,8 @@ d = X_scaled.shape[1]
 h = 32
 z_dim = 4
 batch_size = 32
-n_epochs = 1500
-lr = 1e-3
+n_epochs = 200
+lr = 3e-4
 
 device = torch.device('cpu')
 tvae = TVAE(d=d, h=h, z_dim=z_dim).to(device)
@@ -133,13 +133,14 @@ for epoch in range(n_epochs):
 
         optimizer.zero_grad()
         x_recon, mu, log_var = tvae.forward(x_batch)
-        loss = tvae.elbo_loss(x_batch, x_recon, mu, log_var, beta=beta)
+        # Proper ELBO balance: sum recon over feature dims (match KL's sum over z_dim),
+        # mean over batch. The module's elbo_loss uses mean over both dims, which
+        # makes KL (O(z_dim)) dominate recon (O(1/d)) and triggers posterior collapse.
+        recon_term = F.mse_loss(x_recon, x_batch, reduction="sum") / x_batch.shape[0]
+        kl_term = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp(), dim=1).mean()
+        loss = recon_term + beta * kl_term
         loss.backward()
         optimizer.step()
-
-        # Track components for diagnostics
-        recon_term = F.mse_loss(x_recon, x_batch, reduction="mean")
-        kl_term = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp(), dim=1).mean()
 
         epoch_loss += loss.item()
         epoch_recon += recon_term.item()
@@ -164,7 +165,7 @@ print(f"[TVAE] Final loss: {losses[-1]:.4f}")
 # Generate synthetic samples
 # ============================================================================
 tvae.eval()
-n_synthetic = 5000
+n_synthetic = 1000
 
 print(f"\n[TVAE] Generating {n_synthetic} synthetic samples...")
 with torch.no_grad():

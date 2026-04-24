@@ -1,11 +1,14 @@
 """
 Monte Carlo Dropout Bayesian Neural Network (Gal & Ghahramani 2016).
 
-A standard 2-layer MLP with dropout kept active at inference time to
+A flexible MLP with dropout kept active at inference time to
 approximate Bayesian uncertainty via stochastic forward passes.
 
-Architecture:
-  Linear(d → h) → ReLU → Dropout(p) → Linear(h → h) → ReLU → Dropout(p) → Linear(h → 1)
+Default Architecture (backward compatible):
+  Linear(d → 32) → ReLU → Dropout(p) → Linear(32 → 32) → ReLU → Dropout(p) → Linear(32 → 1)
+
+Custom Architecture (via hidden_layers list):
+  Linear(d → h1) → ReLU → Dropout(p) → Linear(h1 → h2) → ReLU → Dropout(p) → ... → Linear(hN → 1)
 
 Predictive distribution:
   p(y|x) ≈ (1/T) Σ_t f(x; W_t),  where W_t ~ dropout mask
@@ -26,23 +29,41 @@ class MCDropoutBNN(nn.Module):
     d : int
         Input feature dimension.
     h : int, default=32
-        Hidden layer dimension (both layers use same h).
+        (Deprecated) Hidden layer dimension for 2-layer MLP.
+        Ignored if hidden_layers is specified.
+    hidden_layers : list[int], optional
+        List of hidden layer dimensions. If provided, overrides h.
+        Default [32] creates a 2-layer network (backward compatible).
     p : float, default=0.2
         Dropout probability. Applied to all ReLU activations.
     """
 
-    def __init__(self, d: int, h: int = 32, p: float = 0.2):
+    def __init__(self, d: int, h: int = 32, hidden_layers: list[int] | None = None, p: float = 0.2):
         super().__init__()
         self.d = d
-        self.h = h
         self.p = p
 
-        # 2-layer MLP with dropout
-        self.fc1 = nn.Linear(d, h)
-        self.dropout1 = nn.Dropout(p=p)
-        self.fc2 = nn.Linear(h, h)
-        self.dropout2 = nn.Dropout(p=p)
-        self.fc3 = nn.Linear(h, 1)
+        # Support both old (h=) and new (hidden_layers=) API
+        if hidden_layers is None:
+            hidden_layers = [h]
+
+        self.hidden_layers = hidden_layers
+        self.h = hidden_layers[0]  # For backward compat, expose first hidden layer
+
+        # Build sequential network: input → [hidden layers with ReLU+Dropout] → output
+        layers = []
+        prev_dim = d
+
+        for hidden_dim in hidden_layers:
+            layers.append(nn.Linear(prev_dim, hidden_dim))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(p=p))
+            prev_dim = hidden_dim
+
+        # Output layer (no dropout on output)
+        layers.append(nn.Linear(prev_dim, 1))
+
+        self.net = nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -58,12 +79,7 @@ class MCDropoutBNN(nn.Module):
         y : torch.Tensor
             Predicted ratings, shape (batch_size, 1).
         """
-        h = F.relu(self.fc1(x))
-        h = self.dropout1(h)
-        h = F.relu(self.fc2(h))
-        h = self.dropout2(h)
-        y = self.fc3(h)
-        return y
+        return self.net(x)
 
     def predict_with_uncertainty(
         self,

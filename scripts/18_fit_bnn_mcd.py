@@ -101,19 +101,19 @@ torch.manual_seed(42)
 np.random.seed(42)
 
 d = X_train.shape[1]  # Should be 8 (year, runtime, vote, n_genres + 4 modality)
-h = 32
+hidden_layers = [256, 128, 64]
 batch_size = 32
-n_epochs = 300
+n_epochs = 500
 lr = 1e-3
 
 device = torch.device('cpu')
-bnn = MCDropoutBNN(d=d, h=h, p=0.2).to(device)
+bnn = MCDropoutBNN(d=d, hidden_layers=hidden_layers, p=0.1).to(device)
 optimizer = torch.optim.Adam(bnn.parameters(), lr=lr)
 
 X_tensor = torch.from_numpy(X_train).to(device)
 y_tensor = torch.from_numpy(y_train).to(device)
 
-print(f"\n[BNN-MCD] Training config: d={d}, h={h}, epochs={n_epochs}, batch_size={batch_size}, lr={lr}")
+print(f"\n[BNN-MCD] Training config: d={d}, hidden_layers={hidden_layers}, p=0.1, epochs={n_epochs}, batch_size={batch_size}, lr={lr}")
 print(f"[BNN-MCD] Training on {n_training_samples} samples")
 
 losses = []
@@ -227,7 +227,7 @@ X_counterfactual = np.array(X_counterfactual_list, dtype=np.float32)
 print(f"[BNN-MCD] Counterfactual matrix shape: {X_counterfactual.shape}")
 
 # Predict with uncertainty
-mean_cf, std_cf = bnn.predict_with_uncertainty(X_counterfactual, T=50)
+mean_cf, std_cf = bnn.predict_with_uncertainty(X_counterfactual, T=100)
 
 # ============================================================================
 # Save predictions
@@ -296,7 +296,7 @@ for mod_name in modality_names:
 
 ax.set_xlabel('Predicted Mean Rating', fontsize=12)
 ax.set_ylabel('Predictive Std Dev (Uncertainty)', fontsize=12)
-ax.set_title(f'MC Dropout BNN: Predictive Uncertainty (T=50 forward passes)\n{len(predictions_df)} counterfactual samples (82 movies × 4 modalities)', fontsize=12)
+ax.set_title(f'MC Dropout BNN: Predictive Uncertainty (T=100 forward passes)\n{len(predictions_df)} counterfactual samples (82 movies × 4 modalities)', fontsize=12)
 ax.legend(loc='best', fontsize=11)
 ax.grid(alpha=0.3)
 
