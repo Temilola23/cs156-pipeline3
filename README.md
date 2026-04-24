@@ -20,9 +20,20 @@ The app provides:
 
 ### Full Pipeline (Laptop)
 ```bash
-python scripts/01_movielens_twin.py      # ~2 hours
-python scripts/02_genmatch_corpus.py
-# ... (see RUN_ORDER.md for full sequence)
+# Data augmentation pillars
+python scripts/02_genmatch_expand.py      # GenMatch causal-balanced neighbours
+python scripts/14_movielens_twin.py       # MovieLens 25M twin (~2 hours)
+python scripts/15_tvae_synth.py           # TVAE rare-taste synthesis
+
+# Model family fits (see scripts/ for full numbered sequence 10-22)
+python scripts/10_fit_gp.py
+python scripts/13_fit_hmm.py
+python scripts/16_fit_lightgcn.py
+python scripts/19_fit_hierarchical_anova.py
+python scripts/20_causal_ipw_aipw.py
+python scripts/20_conformal_wrap.py
+
+# Export notebook to PDF
 jupyter nbconvert --to pdf notebooks/main_submission.ipynb
 ```
 
@@ -44,8 +55,8 @@ Pipeline 3/
 │   ├── genmatch.py             # Diamond & Sekhon GenMatch
 │   └── ...
 ├── scripts/
-│   ├── 01_movielens_twin.py
-│   ├── 02_genmatch_corpus.py
+│   ├── 02_genmatch_expand.py
+│   ├── 10_fit_gp.py ... 22_fit_cvae.py
 │   ├── ... (full pipeline scripts)
 ├── notebooks/
 │   ├── main_submission.pdf     (<50 pp main narrative)
