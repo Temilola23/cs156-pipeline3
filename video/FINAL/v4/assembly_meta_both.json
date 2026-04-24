@@ -1,0 +1,15 @@
+{
+  "mode": "both",
+  "duration_seconds": 50,
+  "resolution": "1920x1080",
+  "fps": 24,
+  "bitrate": "8000k",
+  "scenes_assembled": 22,
+  "sources_used": {
+    "narrative_keyframes": 3,
+    "svd_xt_clips": 7,
+    "stylegan3_scenes": 7
+  },
+  "music_tracks_used": 3,
+  "output_file": "/Users/temilolaolowolayemo/Library/Mobile Documents/com~apple~CloudDocs/Downloads/T3M1L0LAs_FOLDER/CS156/Pipeline 1/Pipeline 3/_local_assembly/v4_output/ideal_temilola_movie_v4_both.mp4"
+}
