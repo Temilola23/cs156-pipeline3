@@ -24,3 +24,34 @@ LOs.txt
 *.pdf
 CS156 - Pipeline - Final Draft _ Forum _ Minerva.pdf
 Example_Final_project.pdf
+
+# Internal planning / working docs (not for submission)
+MASTER_PROMPT.md
+REVAMP_MASTER_PROMPT.md
+IMPLEMENTATION_PLAN.md
+PLAN.md
+NARRATIVE_DRAFT.md
+MEGA_PITCH.md
+STREAMLIT_MANIFEST.md
+REPORT.md
+research/
+video/FINAL/README_MORNING.md
+docs/superpowers/
+
+# Paper build artefacts (keep .tex as source, keep .pdf for submission)
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.toc
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.synctex.gz
+
+# Notebook build byproducts
+notebooks/main_submission_exec.ipynb
+notebooks/main_submission_files/
+notebooks/main_submission.aux
+notebooks/main_submission.log
+notebooks/main_submission.out
+notebooks/main_submission.tex
+notebooks/main_submission.html
