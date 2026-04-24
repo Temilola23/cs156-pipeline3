@@ -1,12 +1,18 @@
 # Secrets
 .env
 
+# macOS
+.DS_Store
+
 # Large artifacts
 artifacts/*.pt
 artifacts/*.npz
 artifacts/*.nc
+_local_assembly/
 video/clips_*/
 video/scenes/
+video/FINAL/v4/_broken_bitidentical/
+video/FINAL/v4/previews/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
