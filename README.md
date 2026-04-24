@@ -60,7 +60,6 @@ Pipeline 3/
 │   ├── ... (full pipeline scripts)
 ├── notebooks/
 │   ├── main_submission.pdf     (<50 pp main narrative)
-│   ├── full_deep_dive.pdf      (~200–300 pp exhaustive)
 │   └── *.ipynb                 (source notebooks)
 ├── streamlit_app/
 │   ├── app.py                  (main landing page)
@@ -81,7 +80,6 @@ Pipeline 3/
 | File | Purpose |
 |------|---------|
 | [`notebooks/main_submission.pdf`](notebooks/main_submission.pdf) | <50 pp condensed narrative (Methods, Results, Conclusion) |
-| [`notebooks/full_deep_dive.pdf`](notebooks/full_deep_dive.pdf) | ~200–300 pp exhaustive deep-dive (all experiments, visualizations, ablations) |
 
 ## Status
 
